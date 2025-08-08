@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: pulumi_ibm
+Version: 1.81.1
+Summary: A Pulumi provider dynamically bridged from ibm.
+Project-URL: Repository, https://github.com/ibm-cloud/terraform-provider-ibm
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: parver>=0.2.1
+Requires-Dist: pulumi<4.0.0,>=3.165.0
+Requires-Dist: semver>=2.8.1
+Requires-Dist: typing-extensions<5,>=4.11; python_version < "3.11"

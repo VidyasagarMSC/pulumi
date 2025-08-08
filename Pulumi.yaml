@@ -1,0 +1,137 @@
+name: ibm-vpn-certificates
+description: A minimal Random Python Pulumi program.
+runtime:
+  name: python
+  options:
+    toolchain: pip
+    virtualenv: venv
+config:
+  # IBM Cloud Configuration
+  resource_group_id:
+    description: IBM Cloud Resource Group GUID (32-character ID)
+    type: string
+  resource_group_name:
+    description: IBM Cloud Resource Group Name (alternative to resource_group_id)
+    type: string
+    default: Default
+  region:
+    description: IBM Cloud Region
+    type: string
+    default: us-south
+  
+  # Secrets Manager Configuration
+  secrets_manager_name:
+    description: Name for the Secrets Manager instance
+    type: string
+    default: vpn-secrets-manager
+  secrets_manager_plan:
+    description: Secrets Manager service plan (standard or trial)
+    type: string
+    default: standard
+  secrets_manager_service_endpoints:
+    description: Service endpoint access (public-and-private, private-only, or public-only)
+    type: string
+    default: public-and-private
+  secret_group_name:
+    description: Name for the secret group containing certificates
+    type: string
+    default: vpn-certificates
+  secret_group_description:
+    description: Description for the secret group
+    type: string
+    default: Certificate group for VPN client-to-site authentication
+  
+  # Certificate Subject Configuration
+  org_name:
+    description: Organization Name for certificates
+    type: string
+    default: MyOrganization
+  country_code:
+    description: Country code for certificate subjects (ISO 3166-1 alpha-2)
+    type: string
+    default: US
+  state_province:
+    description: State or Province name for certificate subjects
+    type: string
+    default: Texas
+  locality:
+    description: Locality (city) name for certificate subjects
+    type: string
+    default: Austin
+  ca_common_name:
+    description: Common Name for CA certificate
+    type: string
+    default: VPN CA
+  server_common_name:
+    description: Common Name for server certificate
+    type: string
+    default: VPN Server
+  client_common_name:
+    description: Common Name for client certificate
+    type: string
+    default: VPN Client
+  
+  # Certificate Configuration
+  ca_validity_days:
+    description: CA certificate validity period in days
+    type: integer
+    default: 3650
+  cert_validity_days:
+    description: Server and client certificate validity period in days
+    type: integer
+    default: 365
+  key_size:
+    description: RSA key size in bits
+    type: integer
+    default: 2048
+  
+  # Secret Names Configuration
+  ca_cert_secret_name:
+    description: Name for CA certificate secret
+    type: string
+    default: vpn-ca-certificate
+  ca_key_secret_name:
+    description: Name for CA private key secret
+    type: string
+    default: vpn-ca-private-key
+  server_cert_secret_name:
+    description: Name for server certificate secret
+    type: string
+    default: vpn-server-certificate
+  server_key_secret_name:
+    description: Name for server private key secret
+    type: string
+    default: vpn-server-private-key
+  client_cert_secret_name:
+    description: Name for client certificate secret
+    type: string
+    default: vpn-client-certificate
+  client_key_secret_name:
+    description: Name for client private key secret
+    type: string
+    default: vpn-client-private-key
+  
+  # Optional Features
+  export_certificates:
+    description: Export certificate PEM data as stack outputs (WARNING - visible in plain text)
+    type: boolean
+    default: false
+  enable_debug_output:
+    description: Enable debug output during deployment
+    type: boolean
+    default: false
+
+template:
+  config:
+    pulumi:tags:
+      value:
+        purpose: vpn-certificates
+        environment: production
+        managed-by: pulumi
+        project: client-to-site-vpn
+packages:
+  ibm:
+    source: terraform-provider
+    version: 0.12.0
+    parameters:
+      - ibm-cloud/ibm

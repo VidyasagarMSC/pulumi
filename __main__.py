@@ -74,25 +74,6 @@ except (json.JSONDecodeError, ValueError):
 
 all_tags = default_tags + custom_tags
 
-# Certificate Labels Configuration with safe defaults
-def get_labels_config(key, default_labels):
-    try:
-        labels_config = config.get(key)
-        if labels_config:
-            if isinstance(labels_config, str):
-                return json.loads(labels_config)
-            else:
-                return labels_config
-        else:
-            return default_labels
-    except (json.JSONDecodeError, ValueError):
-        return default_labels
-
-ca_labels = get_labels_config("ca_labels", ["ca", "certificate", "vpn"])
-server_labels = get_labels_config("server_labels", ["server", "certificate", "vpn"])
-client_labels = get_labels_config("client_labels", ["client", "certificate", "vpn"])
-key_labels = get_labels_config("key_labels", ["private-key", "vpn"])
-
 # Optional Features
 export_certificates = config.get_bool("export_certificates") or False
 enable_debug_output = config.get_bool("enable_debug_output") or False
@@ -324,7 +305,9 @@ secrets_manager = ibm.ResourceInstance(
     plan="standard",
     location=region,
     resource_group_id=resource_group_id,
-    service_endpoints="public-and-private",
+    #service_endpoints=secrets_manager_service_endpoints,
+    parameters={
+        "allowed_network" : secrets_manager_service_endpoints,    },
     tags=["vpn", "certificates", "pulumi"],
     opts=secrets_manager_opts
 )
@@ -351,7 +334,7 @@ ca_cert_secret = ibm.SmArbitrarySecret(
     name=ca_cert_secret_name,
     description=f"VPN CA Certificate for {org_name} - Valid for {ca_validity_days} days",
     payload=ca_cert_pem,
-    labels=ca_labels + ["certificate"]
+
 )
 
 # Store CA private key
@@ -362,8 +345,7 @@ ca_key_secret = ibm.SmArbitrarySecret(
     secret_group_id=secret_group.secret_group_id,
     name=ca_key_secret_name,
     description=f"VPN CA Private Key for {org_name} - {key_size}-bit RSA",
-    payload=ca_private_key_pem,
-    labels=ca_labels + key_labels
+    payload=ca_private_key_pem
 )
 
 # Store server certificate
@@ -374,8 +356,7 @@ server_cert_secret = ibm.SmArbitrarySecret(
     secret_group_id=secret_group.secret_group_id,
     name=server_cert_secret_name,
     description=f"VPN Server Certificate for {server_common_name} - Valid for {cert_validity_days} days",
-    payload=server_cert_pem,
-    labels=server_labels + ["certificate"]
+    payload=server_cert_pem
 )
 
 # Store server private key
@@ -387,7 +368,6 @@ server_key_secret = ibm.SmArbitrarySecret(
     name=server_key_secret_name,
     description=f"VPN Server Private Key for {server_common_name} - {key_size}-bit RSA",
     payload=server_private_key_pem,
-    labels=server_labels + key_labels
 )
 
 # Store client certificate
@@ -398,8 +378,7 @@ client_cert_secret = ibm.SmArbitrarySecret(
     secret_group_id=secret_group.secret_group_id,
     name=client_cert_secret_name,
     description=f"VPN Client Certificate for {client_common_name} - Valid for {cert_validity_days} days",
-    payload=client_cert_pem,
-    labels=client_labels + ["certificate"]
+    payload=client_cert_pem
 )
 
 # Store client private key
@@ -410,8 +389,7 @@ client_key_secret = ibm.SmArbitrarySecret(
     secret_group_id=secret_group.secret_group_id,
     name=client_key_secret_name,
     description=f"VPN Client Private Key for {client_common_name} - {key_size}-bit RSA",
-    payload=client_private_key_pem,
-    labels=client_labels + key_labels
+    payload=client_private_key_pem
 )
 
 # Export important values

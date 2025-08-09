@@ -750,64 +750,9 @@ pulumi.export("pki_architecture", {
     "encryption": "AES-256-GCM with RSA key exchange"
 })
 
-# Connection instructions
-pulumi.export("connection_instructions", pulumi.Output.all(
-    vpn_server.hostname,
-    client_config_secret.crn,
-    simple_client_config_secret.crn,
-    rootca_only_config_secret.crn
-).apply(
-    lambda args: f"""VPN Connection Setup - Three Client Configuration Options:
-
-=== METHOD 1: Advanced Configuration (Best Security) ===
-1. Download advanced client configuration:
-   pulumi stack output client_config_base64 | base64 -d > vpn-client-advanced.ovpn
-
-2. Or retrieve from Secrets Manager:
-   ibmcloud secrets-manager secret-get --id {args[1].split(':')[-1]} --output json | jq -r '.resources[0].secret_data.payload' > vpn-client-advanced.ovpn
-
-=== METHOD 2: Simple Configuration (No Hostname Verification) ===
-1. Download simple client configuration:
-   pulumi stack output simple_client_config_base64 | base64 -d > vpn-client-simple.ovpn
-
-2. Or retrieve from Secrets Manager:
-   ibmcloud secrets-manager secret-get --id {args[2].split(':')[-1]} --output json | jq -r '.resources[0].secret_data.payload' > vpn-client-simple.ovpn
-
-=== METHOD 3: Root CA Only Configuration (Maximum Compatibility) ===
-1. Download root CA only client configuration:
-   pulumi stack output rootca_only_config_base64 | base64 -d > vpn-client-rootca-only.ovpn
-
-2. Or retrieve from Secrets Manager:
-   ibmcloud secrets-manager secret-get --id {args[3].split(':')[-1]} --output json | jq -r '.resources[0].secret_data.payload' > vpn-client-rootca-only.ovpn
-
-=== Connection Priority Order ===
-1. Start with METHOD 1 (Advanced) for best security
-2. If peer certificate verification fails, try METHOD 2 (Simple)
-3. If still failing, use METHOD 3 (Root CA Only) for maximum compatibility
-
-=== Final Steps ===
-4. Import chosen .ovpn file into your OpenVPN client
-5. Connect to VPN server: {args[0]}
-6. Monitor certificates in Secrets Manager dashboard
-
-=== Troubleshooting Certificate Verification Issues ===
-- Peer certificate verification failed:
-  * Progression: Advanced -> Simple -> Root CA Only configs
-  * Check server certificate SANs: openssl x509 -in server.crt -text -noout | grep -A5 "Subject Alternative Name"
-  * Verify certificate chain: openssl verify -CAfile ca.crt -untrusted intermediate.crt client.crt
-- Test basic connectivity: ping {args[0]}
-- Enable verbose logging: Add 'verb 5' to .ovpn file for detailed connection logs
-- Check IBM Cloud VPN server status in console"""
-))
 
 # Cost and resource summary
 pulumi.export("resource_summary", {
-    "estimated_monthly_cost_usd": {
-        "secrets_manager_standard": "~$1 per secret (~$7 total)",
-        "vpc_resources": "No additional charge",
-        "vpn_server": f"~${0.045 * 24 * 30:.2f} (24/7 operation)",
-        "data_transfer": "Variable based on usage"
-    },
     "resources_created": {
         "vpc": 1,
         "subnet": 1,

@@ -343,3 +343,65 @@ For issues related to:
 - [IBM Cloud VPC VPN](https://cloud.ibm.com/docs/vpc?topic=vpc-vpn-overview)
 - [Pulumi IBM Cloud Provider](https://www.pulumi.com/registry/packages/ibm/)
 - [Certificate Management Best Practices](https://cloud.ibm.com/docs/certificate-manager?topic=certificate-manager-about-certificate-manager)
+
+## VPN Connection Setup
+
+This project exports three OpenVPN client configuration options. Choose the most secure option that works in your environment.
+
+=== METHOD 1: Advanced Configuration (Best Security) ===
+1. Download advanced client configuration from Pulumi outputs:
+   pulumi stack output --show-secrets client_config_base64 | base64 -d > vpn-client-advanced.ovpn
+
+2. Or retrieve directly from Secrets Manager (requires IBM Cloud CLI and jq):
+   ibmcloud secrets-manager secret-get --id $(pulumi stack output management_configs | jq -r '.client_config' | awk -F: '{print $NF}') --output json \
+     | jq -r '.resources[0].secret_data.payload' > vpn-client-advanced.ovpn
+
+=== METHOD 2: Simple Configuration (No Hostname Verification) ===
+1. Download simple client configuration from Pulumi outputs:
+   pulumi stack output --show-secrets simple_client_config_base64 | base64 -d > vpn-client-simple.ovpn
+
+2. Or retrieve from Secrets Manager:
+   ibmcloud secrets-manager secret-get --id $(pulumi stack output management_configs | jq -r '.simple_client_config' | awk -F: '{print $NF}') --output json \
+     | jq -r '.resources[0].secret_data.payload' > vpn-client-simple.ovpn
+
+=== METHOD 3: Root CA Only Configuration (Maximum Compatibility) ===
+1. Download root CA only client configuration from Pulumi outputs:
+   pulumi stack output --show-secrets rootca_only_config_base64 | base64 -d > vpn-client-rootca-only.ovpn
+
+2. Or retrieve from Secrets Manager:
+   ibmcloud secrets-manager secret-get --id $(pulumi stack output management_configs | jq -r '.rootca_only_config' | awk -F: '{print $NF}') --output json \
+     | jq -r '.resources[0].secret_data.payload' > vpn-client-rootca-only.ovpn
+
+=== Connection Priority Order ===
+1. Start with METHOD 1 (Advanced) for best security
+2. If peer certificate verification fails, try METHOD 2 (Simple)
+3. If still failing, use METHOD 3 (Root CA Only) for maximum compatibility
+
+=== Final Steps ===
+4. Import the chosen .ovpn file into your OpenVPN client
+5. Connect to the VPN server hostname exposed by the stack output `vpn_server_hostname`
+6. Monitor certificates in the Secrets Manager dashboard (see `secrets_manager_dashboard_url` output)
+
+=== Troubleshooting Certificate Verification Issues ===
+- Peer certificate verification failed:
+  * Progression: Advanced -> Simple -> Root CA Only configs
+  * Check server certificate SANs:
+    openssl x509 -in server.crt -text -noout | grep -A5 "Subject Alternative Name"
+  * Verify certificate chain:
+    openssl verify -CAfile ca.crt -untrusted intermediate.crt client.crt
+- Test basic connectivity to the VPN hostname using ping
+- Enable verbose logging: add `verb 5` to the .ovpn file for detailed logs
+- Check IBM Cloud VPN server status in the IBM Cloud console
+
+## Resource Summary
+
+Resources created:
+- VPC: 1
+- Subnet: 1
+- Security group: 1
+- Security group rules: 3
+- VPN server: 1
+- Secrets Manager instance: 1
+- Secret groups: 3
+- Certificates: 4
+- Configuration secrets: 3

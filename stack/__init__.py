@@ -1,0 +1,2 @@
+# Makes 'stack' a package
+

@@ -2,12 +2,15 @@ import pulumi
 import base64
 
 
-def export_outputs(cfg, vpc, subnet, secrets_manager, secrets_manager_guid, vpn_server, cert_secrets, client_configs, monitoring, tools):
+def export_outputs(cfg, vpc, subnet, secrets_manager, secrets_manager_guid, vpn_server, cert_secrets, client_configs, monitoring, tools, ha_subnet=None):
     # Core infrastructure outputs
     pulumi.export("vpc_id", vpc.id)
     pulumi.export("vpc_name", vpc.name)
     pulumi.export("subnet_id", subnet.id)
     pulumi.export("subnet_cidr", cfg.subnet_cidr)
+    if ha_subnet is not None:
+        pulumi.export("ha_subnet_id", ha_subnet.id)
+        pulumi.export("ha_subnet_cidr", cfg.second_subnet_cidr)
 
     # Secrets Manager outputs
     pulumi.export("secrets_manager_guid", secrets_manager_guid)
@@ -88,7 +91,7 @@ def export_outputs(cfg, vpc, subnet, secrets_manager, secrets_manager_guid, vpn_
         {
             "resources_created": {
                 "vpc": 1,
-                "subnet": 1,
+                "subnets": 2 if ha_subnet is not None else 1,
                 "security_group": 1,
                 "security_group_rules": 3,
                 "vpn_server": 1,

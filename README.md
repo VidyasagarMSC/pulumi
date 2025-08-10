@@ -65,6 +65,21 @@ pulumi config set ibm-vpn-certificates:certificate_validity_days 365
 pulumi config set ibm-vpn-certificates:ca_validity_days 3650
 ```
 
+#### Standalone vs HA deployment
+- Standalone (default): one subnet in zone `${region}-1`.
+  ```bash
+  # No extra settings required (default is standalone)
+  pulumi up
+  ```
+- High Availability (HA): two subnets across zones `${region}-1` and `${region}-2` and the VPN server spans both subnets for zone redundancy (per IBM Cloud best practices).
+  ```bash
+  pulumi config set ibm-vpn-certificates:ha_enabled true
+  # Optional: customize second subnet CIDR (defaults to 10.240.1.0/24)
+  pulumi config set ibm-vpn-certificates:second_subnet_cidr 10.240.1.0/24
+  pulumi up
+  ```
+  Reference: IBM Cloud docs on HA client-to-site VPN for VPC (see VPN servers across multiple subnets and zones): https://cloud.ibm.com/docs/vpc?topic=vpc-vpn-about
+
 Effective configuration keys:
 
 | Key | Description | Default |
@@ -73,10 +88,12 @@ Effective configuration keys:
 | `region` | IBM Cloud Region | `us-south` |
 | `vpc_name` | Base name for VPC resources | `vpc-pki-vpn` |
 | `subnet_cidr` | Subnet CIDR (zone `${region}-1`) | `10.240.0.0/24` |
+| `second_subnet_cidr` | Second subnet CIDR (zone `${region}-2`, HA only) | `10.240.1.0/24` |
 | `vpn_client_cidr` | VPN client IP pool | `172.16.0.0/16` |
 | `pki_common_name` | Base CN for certificates | `VPC VPN PKI` |
 | `certificate_validity_days` | End-entity cert validity | `365` |
 | `ca_validity_days` | Root CA validity | `3650` |
+| `ha_enabled` | Enable HA (attach VPN server to two subnets/zones) | `false` |
 
 Notes:
 - Secrets Manager instance configuration (plan: `standard`, allowed network: `public-and-private`) is defined in code ([`stack/secrets.py`](./stack/secrets.py)).
@@ -135,17 +152,24 @@ pulumi destroy
 ```
 
 What gets created:
-- VPC and Subnet in zone `${region}-1`
+- VPC and one subnet in zone `${region}-1` (standalone) or two subnets across `${region}-1` and `${region}-2` (HA)
 - Security Group + rules (UDP/443 inbound, ICMP inbound, all outbound)
 - Secrets Manager instance and three secret groups
 - Root CA, Intermediate CA, Server, and Client certificate secrets
 - IBM Cloud VPC VPN Server (UDP/443) using the server certificate; client auth chained to Intermediate CA
+- In HA mode, the VPN server is attached to both subnets for zone-level redundancy
 - Three OpenVPN client configuration secrets and their base64 outputs
 
 ### 🔧 Examples / Usage Scenarios
 - Basic deployment with defaults
   ```bash
   pulumi config set ibm-vpn-certificates:resource_group_id "<guid>"
+  pulumi up
+  ```
+
+- High Availability deployment
+  ```bash
+  pulumi config set ibm-vpn-certificates:ha_enabled true
   pulumi up
   ```
 
@@ -214,6 +238,7 @@ There is no formal test suite. Recommended validation steps:
 - Multiple client certificate generations and revocation workflows
 - Automated rotation and renewal jobs
 - Additional VPN profiles and protocols
+- Optional multi-zone customization (e.g., choose specific zones beyond `-1`/`-2`)
 
 ### 🤝 Contributing
 Contributions are welcome:

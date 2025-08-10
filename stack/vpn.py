@@ -2,7 +2,7 @@ import pulumi_ibm as ibm
 from .config import Config
 
 
-def create_vpn_server(cfg: Config, vpc, subnet, cert_secrets):
+def create_vpn_server(cfg: Config, vpc, primary_subnet, cert_secrets, secondary_subnet=None):
     vpn_security_group = ibm.IsSecurityGroup(
         "vpn-security-group",
         name=f"{cfg.vpc_name}-vpn-sg",
@@ -37,6 +37,10 @@ def create_vpn_server(cfg: Config, vpc, subnet, cert_secrets):
         remote="0.0.0.0/0",
     )
 
+    subnets = [primary_subnet.id]
+    if cfg.ha_enabled and secondary_subnet is not None:
+        subnets.append(secondary_subnet.id)
+
     vpn_server = ibm.IsVpnServer(
         "vpn-server",
         name=f"{cfg.vpc_name}-vpn-server",
@@ -47,10 +51,10 @@ def create_vpn_server(cfg: Config, vpc, subnet, cert_secrets):
         enable_split_tunneling=False,
         port=443,
         protocol="udp",
-        subnets=[subnet.id],
+        subnets=subnets,
         security_groups=[vpn_security_group.id],
         resource_group=cfg.resource_group_id,
-        tags=["pulumi", "vpn-server"],
+        tags=["pulumi", "vpn-server", "ha" if cfg.ha_enabled else "standalone"],
     )
 
     return vpn_server

@@ -13,6 +13,7 @@ class Config:
     certificate_validity_days: int
     ca_validity_days: int
     ha_enabled: bool
+    enable_userpass_auth: bool
 
 
 def load_config() -> Config:
@@ -28,5 +29,6 @@ def load_config() -> Config:
         certificate_validity_days=cfg.get_int("certificate_validity_days") or 365,
         ca_validity_days=cfg.get_int("ca_validity_days") or 3650,
         ha_enabled=cfg.get_bool("ha_enabled") or False,
+        enable_userpass_auth=cfg.get_bool("enable_userpass_auth") or False,
     )
 

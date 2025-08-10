@@ -28,7 +28,7 @@ cert_secrets = store_certificates(secrets_manager_guid, ca_group, server_group, 
 vpn_server = create_vpn_server(cfg, vpc, subnet, cert_secrets, secondary_subnet=ha_subnet)
 
 # Client configs (stored as secrets)
-client_configs = create_client_configs(secrets_manager_guid, client_group, vpn_server, pki, cert_secrets)
+client_configs = create_client_configs(secrets_manager_guid, client_group, vpn_server, pki, cert_secrets, cfg)
 
 # Monitoring and tools configs
 monitoring, tools = create_monitoring_tools(secrets_manager_guid, ca_group, cfg)

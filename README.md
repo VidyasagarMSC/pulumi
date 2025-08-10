@@ -72,13 +72,25 @@ pulumi config set ibm-vpn-certificates:ca_validity_days 3650
   pulumi up
   ```
 - High Availability (HA): two subnets across zones `${region}-1` and `${region}-2` and the VPN server spans both subnets for zone redundancy (per IBM Cloud best practices).
-  ```bash
+```bash
   pulumi config set ibm-vpn-certificates:ha_enabled true
   # Optional: customize second subnet CIDR (defaults to 10.240.1.0/24)
   pulumi config set ibm-vpn-certificates:second_subnet_cidr 10.240.1.0/24
-  pulumi up
-  ```
+pulumi up
+```
   Reference: IBM Cloud docs on HA client-to-site VPN for VPC (see VPN servers across multiple subnets and zones): https://cloud.ibm.com/docs/vpc?topic=vpc-vpn-about
+
+#### Optional MFA: username + passcode (IBM IAM)
+This project always enforces certificate-based client auth. You can optionally require an additional factor using IBM IAM username/password (+ passcode factors per your IAM setup).
+
+Enable user/password auth alongside certificates:
+```bash
+pulumi config set ibm-vpn-certificates:enable_userpass_auth true
+pulumi up
+```
+Notes:
+- Client must satisfy all configured methods (certificate AND username/password via IAM).
+- See IBM VPN server authentication docs for supported identity providers (`identity_provider: iam`).
 
 Effective configuration keys:
 
@@ -94,6 +106,7 @@ Effective configuration keys:
 | `certificate_validity_days` | End-entity cert validity | `365` |
 | `ca_validity_days` | Root CA validity | `3650` |
 | `ha_enabled` | Enable HA (attach VPN server to two subnets/zones) | `false` |
+| `enable_userpass_auth` | Add IBM IAM username/password auth (MFA) in addition to certs | `false` |
 
 Notes:
 - Secrets Manager instance configuration (plan: `standard`, allowed network: `public-and-private`) is defined in code ([`stack/secrets.py`](./stack/secrets.py)).
@@ -168,10 +181,10 @@ What gets created:
   ```
 
 - High Availability deployment
-  ```bash
+```bash
   pulumi config set ibm-vpn-certificates:ha_enabled true
-  pulumi up
-  ```
+pulumi up
+```
 
 - Customize validity and names
   ```bash
@@ -184,23 +197,28 @@ What gets created:
 - Retrieve OpenVPN client configuration (three options)
   - Advanced (best security)
     ```bash
-    pulumi stack output --show-secrets client_config_base64 | base64 -d > vpn-client-advanced.ovpn
+   pulumi stack output --show-secrets client_config_base64 | base64 -d > vpn-client-advanced.ovpn
     # Or via Secrets Manager (requires ibmcloud CLI and jq)
-    ibmcloud secrets-manager secret-get --id $(pulumi stack output management_configs | jq -r '.client_config' | awk -F: '{print $NF}') --output json \
-      | jq -r '.resources[0].secret_data.payload' > vpn-client-advanced.ovpn
+   ibmcloud secrets-manager secret-get --id $(pulumi stack output management_configs | jq -r '.client_config' | awk -F: '{print $NF}') --output json \
+     | jq -r '.resources[0].secret_data.payload' > vpn-client-advanced.ovpn
     ```
   - Simple (no hostname verification)
     ```bash
-    pulumi stack output --show-secrets simple_client_config_base64 | base64 -d > vpn-client-simple.ovpn
-    ibmcloud secrets-manager secret-get --id $(pulumi stack output management_configs | jq -r '.simple_client_config' | awk -F: '{print $NF}') --output json \
-      | jq -r '.resources[0].secret_data.payload' > vpn-client-simple.ovpn
+   pulumi stack output --show-secrets simple_client_config_base64 | base64 -d > vpn-client-simple.ovpn
+   ibmcloud secrets-manager secret-get --id $(pulumi stack output management_configs | jq -r '.simple_client_config' | awk -F: '{print $NF}') --output json \
+     | jq -r '.resources[0].secret_data.payload' > vpn-client-simple.ovpn
     ```
   - Root CA only (maximum compatibility)
     ```bash
-    pulumi stack output --show-secrets rootca_only_config_base64 | base64 -d > vpn-client-rootca-only.ovpn
-    ibmcloud secrets-manager secret-get --id $(pulumi stack output management_configs | jq -r '.rootca_only_config' | awk -F: '{print $NF}') --output json \
-      | jq -r '.resources[0].secret_data.payload' > vpn-client-rootca-only.ovpn
+   pulumi stack output --show-secrets rootca_only_config_base64 | base64 -d > vpn-client-rootca-only.ovpn
+   ibmcloud secrets-manager secret-get --id $(pulumi stack output management_configs | jq -r '.rootca_only_config' | awk -F: '{print $NF}') --output json \
+     | jq -r '.resources[0].secret_data.payload' > vpn-client-rootca-only.ovpn
     ```
+
+  If `enable_userpass_auth` is true, the generated `.ovpn` files will include:
+  - `auth-user-pass` to prompt for username/password
+  - `auth-retry interact` for clients that require interactive retries
+  - `auth-nocache` to avoid storing credentials in memory longer than needed
 
 Connect using the exported `vpn_server_hostname`.
 

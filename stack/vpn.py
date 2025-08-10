@@ -41,11 +41,19 @@ def create_vpn_server(cfg: Config, vpc, primary_subnet, cert_secrets, secondary_
     if cfg.ha_enabled and secondary_subnet is not None:
         subnets.append(secondary_subnet.id)
 
+    # Build client authentication methods. Always require certificate auth.
+    client_auth_methods = [
+        {"method": "certificate", "client_ca_crn": cert_secrets["intermediate_secret"].crn}
+    ]
+    # Optionally add IBM IAM user/password auth (username+passcode)
+    if cfg.enable_userpass_auth:
+        client_auth_methods.append({"method": "username", "identity_provider": "iam"})
+
     vpn_server = ibm.IsVpnServer(
         "vpn-server",
         name=f"{cfg.vpc_name}-vpn-server",
         certificate_crn=cert_secrets["server_secret"].crn,
-        client_authentications=[{"method": "certificate", "client_ca_crn": cert_secrets["intermediate_secret"].crn}],
+        client_authentications=client_auth_methods,
         client_ip_pool=cfg.vpn_client_cidr,
         client_idle_timeout=2800,
         enable_split_tunneling=False,

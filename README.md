@@ -1,5 +1,7 @@
 ## IBM VPN Certificates ✨
 
+> Article explaining the capabilities of Pulumi and how to use the tool [DZone](https://dzone.com/articles/pulumi-infrastructure-as-code)
+
 [![Python](https://img.shields.io/badge/python-%3E%3D3.9-blue)](https://www.python.org/downloads/) [![Pulumi](https://img.shields.io/badge/IaC-Pulumi-8A3391)](https://www.pulumi.com/) [![IBM Cloud](https://img.shields.io/badge/Cloud-IBM%20Cloud-1261FE)](https://www.ibm.com/cloud) [![License: MPL-2.0](https://img.shields.io/badge/License-MPL--2.0-brightgreen.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
 
 Pulumi program that provisions a client-to-site VPN on IBM Cloud VPC with a production-grade PKI and secure secret storage in [IBM Cloud Secrets Manager](https://cloud.ibm.com/docs/secrets-manager). 🔐
